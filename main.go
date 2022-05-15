@@ -13,23 +13,25 @@ var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 func main() {
 	wg := &sync.WaitGroup{}
 	m := &sync.RWMutex{}
+	cacheCh := make(chan Book)
+	dbCh := make(chan Book)
 
 	for i := 0; i < 10; i++ {
 		wg.Add(2)
 		id := rnd.Intn(10) + 1
-		go func(id int, wg *sync.WaitGroup, m *sync.RWMutex) {
+		go func(id int, wg *sync.WaitGroup, m *sync.RWMutex, ch chan Book) {
 			if b, ok := queryCache(id, m); ok {
 				fmt.Println("from cache", b)
 			}
 			wg.Done()
-		}(id, wg, m)
+		}(id, wg, m, cacheCh)
 
-		go func(id int, wg *sync.WaitGroup, m *sync.RWMutex) {
+		go func(id int, wg *sync.WaitGroup, m *sync.RWMutex, ch chan Book) {
 			if b, ok := queryDatabase(id, m); ok {
 				fmt.Println("from database", b)
 			}
 			wg.Done()
-		}(id, wg, m)
+		}(id, wg, m, dbCh)
 		time.Sleep(150 * time.Millisecond)
 	}
 	wg.Wait()
